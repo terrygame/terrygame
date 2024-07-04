@@ -1,157 +1,122 @@
 <!DOCTYPE html>
-<html>
-<head>
-<title>Welcome Terry Game World</title>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-* {
-    box-sizing: border-box;
-}
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity WebGL Player | Judy_Adventure</title>
+    <link rel="shortcut icon" href="TemplateData/favicon.ico">
+    <link rel="stylesheet" href="TemplateData/style.css">
+  </head>
+  <body>
+    <div id="unity-container" class="unity-desktop">
+      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
+      <div id="unity-loading-bar">
+        <div id="unity-logo"></div>
+        <div id="unity-progress-bar-empty">
+          <div id="unity-progress-bar-full"></div>
+        </div>
+      </div>
+      <div id="unity-warning"> </div>
+      <div id="unity-footer">
+        <div id="unity-webgl-logo"></div>
+        <div id="unity-fullscreen-button"></div>
+        <div id="unity-build-title">Judy_Adventure</div>
+      </div>
+    </div>
+    <script>
 
-/* body 样式 */
-body {
-    font-family: Arial;
-    margin: 0;
-}
+      var container = document.querySelector("#unity-container");
+      var canvas = document.querySelector("#unity-canvas");
+      var loadingBar = document.querySelector("#unity-loading-bar");
+      var progressBarFull = document.querySelector("#unity-progress-bar-full");
+      var fullscreenButton = document.querySelector("#unity-fullscreen-button");
+      var warningBanner = document.querySelector("#unity-warning");
 
-/* 标题 */
-.header {
-    padding: 70px;
-    text-align: center;
-    background: #1abc9c;
-    color: white;
-}
+      // Shows a temporary message banner/ribbon for a few seconds, or
+      // a permanent error message on top of the canvas if type=='error'.
+      // If type=='warning', a yellow highlight color is used.
+      // Modify or remove this function to customize the visually presented
+      // way that non-critical warnings and error messages are presented to the
+      // user.
+      function unityShowBanner(msg, type) {
+        function updateBannerVisibility() {
+          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+        }
+        var div = document.createElement('div');
+        div.innerHTML = msg;
+        warningBanner.appendChild(div);
+        if (type == 'error') div.style = 'background: red; padding: 10px;';
+        else {
+          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+          setTimeout(function() {
+            warningBanner.removeChild(div);
+            updateBannerVisibility();
+          }, 5000);
+        }
+        updateBannerVisibility();
+      }
 
-/* 标题字体加大 */
-.header h1 {
-    font-size: 40px;
-}
+      var buildUrl = "Build";
+      var loaderUrl = buildUrl + "/_buildweb.loader.js";
+      var config = {
+        dataUrl: buildUrl + "/_buildweb.data.br",
+        frameworkUrl: buildUrl + "/_buildweb.framework.js.br",
+        codeUrl: buildUrl + "/_buildweb.wasm.br",
+        streamingAssetsUrl: "StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "Judy_Adventure",
+        productVersion: "1.0",
+        showBanner: unityShowBanner,
+      };
 
-/* 导航 */
-.navbar {
-    overflow: hidden;
-    background-color: #333;
-}
+      // By default, Unity keeps WebGL canvas render target size matched with
+      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
+      // Set this to false if you want to decouple this synchronization from
+      // happening inside the engine, and you would instead like to size up
+      // the canvas DOM size and WebGL render target sizes yourself.
+      // config.matchWebGLToCanvasSize = false;
 
-/* 导航栏样式 */
-.navbar a {
-    float: left;
-    display: block;
-    color: white;
-    text-align: center;
-    padding: 14px 20px;
-    text-decoration: none;
-}
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        // Mobile device style: fill the whole browser client area with the game canvas:
 
-/* 右侧链接*/
-.navbar a.right {
-    float: right;
-}
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.getElementsByTagName('head')[0].appendChild(meta);
+        container.className = "unity-mobile";
+        canvas.className = "unity-mobile";
 
-/* 鼠标移动到链接的颜色 */
-.navbar a:hover {
-    background-color: #ddd;
-    color: black;
-}
+        // To lower canvas resolution on mobile devices to gain some
+        // performance, uncomment the following line:
+        // config.devicePixelRatio = 1;
 
-/* 列容器 */
-.row {  
-    display: -ms-flexbox; /* IE10 */
-    display: flex;
-    -ms-flex-wrap: wrap; /* IE10 */
-    flex-wrap: wrap;
-}
 
-/* 创建两个列 */
-/* 边栏 */
-.side {
-    -ms-flex: 30%; /* IE10 */
-    flex: 30%;
-    background-color: #f1f1f1;
-    padding: 20px;
-}
+      } else {
+        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
 
-/* 主要的内容区域 */
-.main {   
-    -ms-flex: 70%; /* IE10 */
-    flex: 70%;
-    background-color: white;
-    padding: 20px;
-}
+        canvas.style.width = "960px";
+        canvas.style.height = "600px";
+      }
 
-/* 测试图片 */
-.fakeimg {
-    background-color: #aaa;
-    width: 100%;
-    padding: 20px;
-}
+      loadingBar.style.display = "block";
 
-/* 底部 */
-.footer {
-    padding: 20px;
-    text-align: center;
-    background: #ddd;
-}
+      var script = document.createElement("script");
+      script.src = loaderUrl;
+      script.onload = () => {
+        createUnityInstance(canvas, config, (progress) => {
+          progressBarFull.style.width = 100 * progress + "%";
+              }).then((unityInstance) => {
+                loadingBar.style.display = "none";
+                fullscreenButton.onclick = () => {
+                  unityInstance.SetFullscreen(1);
+                };
+              }).catch((message) => {
+                alert(message);
+              });
+            };
 
-/* 响应式布局 - 在屏幕设备宽度尺寸小于 700px 时, 让两栏上下堆叠显示 */
-@media screen and (max-width: 700px) {
-    .row {   
-        flex-direction: column;
-    }
-}
+      document.body.appendChild(script);
 
-/* 响应式布局 - 在屏幕设备宽度尺寸小于 400px 时, 让导航栏目上下堆叠显示 */
-@media screen and (max-width: 400px) {
-    .navbar a {
-        float: none;
-        width: 100%;
-    }
-}
-</style>
-</head>
-<body>
-
-<div class="header">
-  <h1>Terry Game Workshop</h1>
-  <p>These games  are created only for fun.</p>
-</div>
-
-<div class="navbar">
-
-  <a href="#" class="right">home</a>
-</div>
-
-<div class="row">
-  <div class="side">
-      <h2>About me</h2>
-      <h5>GamJam:</h5>
-      <div class="fakeimg" style="height:200px;">这边插入图像</div>
-      <p>My background</p>
-      <h3>更多内容</h3>
-      <p>我的更多内容</p>
-      <div class="fakeimg" style="height:60px;">这边插入图像</div><br>
-      <div class="fakeimg" style="height:60px;">这边插入图像</div><br>
-      <div class="fakeimg" style="height:60px;">这边插入图像</div>
-  </div>
-  <div class="main">
-      <h2>Game 1 Introduction</h2>
-      <h5>副标题</h5>
-      <div class="fakeimg" style="height:200px;">图像</div>
-      <p>一些文本..</p>
-      <p>Here you can play the games！</p>
-      <br>
-      <h2>Game 2 Introduction</h2>
-      <h5>副标题</h5>
-      <div class="fakeimg" style="height:200px;">图像</div>
-      <p>一些文本..</p>
-      <p>Here you can also learn how to create your own games！</p>
-  </div>
-</div>
-
-<div class="footer">
-  <h2>All rights reserverd by Terry, Li</h2>
-</div>
-
-</body>
+    </script>
+  </body>
 </html>
